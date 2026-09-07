@@ -31,4 +31,3 @@ io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
-app.
