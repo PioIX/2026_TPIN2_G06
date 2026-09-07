@@ -30,4 +30,3 @@ const io = new Server(server, {
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
-
