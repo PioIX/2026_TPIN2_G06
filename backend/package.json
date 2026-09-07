@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "build": "pkg . --targets node18-win-x64 --output build/backend-tp2.exe"
+    "build": "pkg . --targets node18-win-x64 --output build/backend-tp2.exe",
+     "pio": "nodemon --env-file=.pio.env index.js",
+    "home": "nodemon --env-file=.home.env index.js"
   },
   "keywords": [
     "socket.io",
