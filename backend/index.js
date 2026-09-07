@@ -27,47 +27,8 @@ const io = new Server(server, {
     credentials: true,
   },
 });
-
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
 
-let contador = 0;
-
-io.on("connection", (socket) => {
-  const req = socket.request;
-
-  socket.on("joinRoom", (data) => {
-    if (req.session.room != undefined && req.session.room.length > 0) {
-      socket.leave(req.session.room);
-    }
-    req.session.room = data.room;
-    socket.join(req.session.room);
-
-    io.to(req.session.room).emit("chat-messages", {
-      user: req.session.user,
-      room: req.session.room,
-    });
-  });
-
-  socket.on("pingAll", (data) => {
-    console.log("PING ALL:", data);
-    io.emit("pingAll", { event: "Ping to all", message: data });
-  });
-
-  socket.on("sendMessage", (data) => {
-    io.to(req.session.room).emit("newMessage", {
-      room: req.session.room,
-      message: data.message,
-    });
-  });
-
-  socket.on("eventoPersonalizado", () => {
-    contador++;
-    socket.emit("respuestaPersonalizada", { contador });
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Disconnect");
-  });
-});
+app.
