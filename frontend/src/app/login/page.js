@@ -1,4 +1,5 @@
 'use client';
+import Button from "@/components/Button";
 
 export default function LoginPage() {
     return (
@@ -7,7 +8,7 @@ export default function LoginPage() {
             <form>
                 <input type="text" placeholder="Mail" />
                 <input type="password" placeholder="Password" />
-                <button type="submit">Login</button>
+                <Button type="submit">Iniciar sesión</Button>
             </form>
         </div>
     );

@@ -16,6 +16,16 @@ const sessionMiddleware = session({
 });
 app.use(sessionMiddleware);
 
+app.post("/usuarios", (req, res) => {
+    console.log("Usuario recibido:", req.body);
+
+    res.json({
+        mensaje: "Usuario registrado correctamente",
+        usuario: req.body
+    });
+});
+
+
 const server = app.listen(PORT, () => {
   console.log(`Servidor NodeJS corriendo en http://localhost:${PORT}/`);
 });
@@ -30,3 +40,6 @@ const io = new Server(server, {
 io.use((socket, next) => {
   sessionMiddleware(socket.request, {}, next);
 });
+
+
+
