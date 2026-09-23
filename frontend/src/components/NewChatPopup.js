@@ -19,7 +19,7 @@ function NewChatPopup({ idUsuario, actualizarChats }) {
     try {
 
       const respuesta = await fetch(
-        "http://localhost:4000/chatIndividual",
+        "http://localhost:4000/chats",
         {
           method: "POST",
 
