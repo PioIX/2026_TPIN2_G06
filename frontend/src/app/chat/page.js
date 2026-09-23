@@ -1,5 +1,6 @@
+'use client';
 import React, { useEffect, useState } from "react";
-import ChatList from "../components/ChatList";
+import ChatList from "../../components/ChatList";
 
 
 function Chat() {
