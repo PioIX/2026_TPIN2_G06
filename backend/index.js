@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const { Server } = require("socket.io");
+const { realizarQuery } = require("./modulos/mysql");
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -41,7 +42,7 @@ try {
         msg: "No se pudo loguear"
     };
      let existe = await realizarQuery(`
-            SELECT * FROM Usuarios WHERE nombre = '${req.body.nombre}' OR contra = '${req.body.contra}'
+            SELECT * FROM Usuarios WHERE mail = '${req.body.mail}' AND contra = '${req.body.contra}'
         `);
 
         if (existe.length > 0) {
@@ -50,6 +51,7 @@ try {
         }
         return res.send(respuesta);
 } catch (error) {
+    console.log(error.message)
     res.send({ message: "usuario no existe registrate", ok: false });
 }
 });
