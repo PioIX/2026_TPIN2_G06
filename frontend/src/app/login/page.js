@@ -29,7 +29,7 @@ export default function LoginPage() {
         localStorage.setItem('mail', JSON.stringify(mail));
         
         // Redirigimos a la pantalla principal de chats
-        router.push('/chats');
+        router.push('/chat');
       } else {
         setError(data.msg || 'Credenciales incorrectas');
       }

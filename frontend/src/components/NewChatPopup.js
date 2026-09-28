@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import Popup from "reactjs-popup";
 import "reactjs-popup/dist/index.css";
 
+
+//4) c.
 function NewChatPopup({ idUsuario, actualizarChats }) {
 
   const [mail, setMail] = useState("");
@@ -47,7 +49,7 @@ function NewChatPopup({ idUsuario, actualizarChats }) {
 
       setMail("");
 
-      // Volvemos a pedir los chats
+      // Se vuelven a pedir los chats
       await actualizarChats();
 
     } catch (error) {
