@@ -1,6 +1,6 @@
 'use client'
 
-import useSocket from "@/hooks/useSocket";
+import {useSocket} from "@/hooks/useSocket";
 import { useEffect, useState } from "react";
 
 export default function SocketPage() {
