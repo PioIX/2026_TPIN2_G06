@@ -24,10 +24,12 @@ export default function LoginPage() {
 
       const data = await res.json();
       console.log(data)
-      if (data.ok) {
+      if (data.respuesta && data.respuesta.ok) {
         // Guardamos los datos del usuario en el navegador para usarlos después
         localStorage.setItem('mail', JSON.stringify(mail));
-        
+        if (data.existe && data.existe.length > 0) {
+          localStorage.setItem('usuario', JSON.stringify(data.existe[0]));
+        }
         // Redirigimos a la pantalla principal de chats
         router.push('/chat');
       } else {

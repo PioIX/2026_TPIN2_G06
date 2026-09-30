@@ -34,7 +34,7 @@ io.use((socket, next) => {
 });
 
 // =========================================================
-// MANEJO DE REGISTRO MEDIANTE SOCKET.IO
+// MANEJO DE EVENTOS DE SOCKET.IO
 // =========================================================
 io.on("connection", (socket) => {
   console.log("🟢 Nuevo cliente conectado por Socket.IO con ID:", socket.id);
@@ -80,155 +80,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log("🔴 Cliente desconectado:", socket.id);
-  });
-});
-
-// =========================================================
-// RUTAS EXPRESS INTACTAS
-// =========================================================
-
-app.post('/login', async function (req, res) {
-    console.log(req.body);
-    try {
-      let respuesta = {
-            ok: false,
-            msg: "No se pudo loguear"
-        };
-        let existe = await realizarQuery(`
-            SELECT * FROM Usuarios WHERE mail = '${req.body.mail}' AND contra = '${req.body.contra}'
-        `);
-
-        if (existe.length > 0) {
-            respuesta.msg = "El usuario existe.";
-            respuesta.ok = true
-        }
-        return res.send({respuesta, existe});
-    } catch (error) {
-        console.log(error.message)
-        res.send({ message: "usuario no existe registrate", ok: false });
-    }
-});
-
-app.get('/chats', async function (req, res) {
-    try {
-        let chats = await realizarQuery(`SELECT * from Chats INNER JOIN
-        UsuarioEnChat ON Chat.id_chat = UsuarioEnChat.id_chat
-        INNER JOIN Usuarios ON Usuarios.id_usuario = UsuarioEnChat.id_usuario
-        WHERE id_usuario = ${req.query.id_usuario};`);
-        console.log("en el back", chats[0]);
-        res.send({ chats: chats, status: 1 })
-    } catch (error) {
-        res.send({ status: -1, error: error.message })
-    }
-});
-
-app.post('/chatIndividual', async function (req, res) {
-    console.log(req.body) 
-    let existe = []
-    let chat1 = await realizarQuery(`select id_usuario, nombre from Usuarios where mail = "${req.body.mail}"`)
-    if (chat1.length > 0) {
-        existe = await realizarQuery(`
-            SELECT * FROM UsuariosEnChat WHERE id_usuario = ${chat1[0].id_usuario};
-        `)
-    }
-    console.log(existe)
-    if (existe.length > 0) {
-        res.send({ message: "Ya existe" })
-    } else {
-      await realizarQuery(`
-        INSERT INTO Chats (nom_grupo) VALUES
-        (${chat1[0].nombre})`)
-
-        let chat = await realizarQuery(`select id_chat from Chats`)
-        await realizarQuery(`
-        INSERT INTO UsuariosEnChat (id_usuario, id_chat) VALUES
-        (${chat1[0].id_usuario}, ${chat[chat.length - 1].id_chat})
-    `)
-        res.send({ message: "Se ha agregado" });
-    }
-});
-
-app.post("/usuarios", (req, res) => {
-    console.log("Usuario recibido:", req.body);
-    res.json({
-        mensaje: "Usuario registrado correctamente",
-        usuario: req.body
-    });
-});
-
-// =========================================================
-// NUEVOS ENDPOINTS REST REQUERIDOS
-// =========================================================
-
-// Crear un chat grupal a partir de múltiples mails
-app.post("/chatGrupal", async (req, res) => {
-  const { id_creador, mails, nombre_grupal } = req.body; // mails debe ser un Array: ["a@a.com", "b@b.com"]
-
-  if (!mails || !Array.isArray(mails) || mails.length === 0) {
-    return res.status(400).json({ ok: false, msg: "Se requiere un array de mails." });
-  }
-
-  try {
-    // 1. Obtener los IDs de usuario correspondientes a los mails
-    const placeholders = mails.map(() => "?").join(",");
-    const usuarios = await realizarQuery(
-      `SELECT id_usuario FROM Usuarios WHERE mail IN (${placeholders})`,
-      mails
-    );
-
-    // Unificar IDs evitando duplicados e incluyendo al creador
-    const idsParticipantes = new Set(usuarios.map((u) => u.id_usuario));
-    idsParticipantes.add(Number(id_creador));
-
-    // 2. Crear el chat grupal
-    const resultadoChat = await realizarQuery(
-      "INSERT INTO Chats (es_grupal, nombre_chat) VALUES (1, ?)",
-      [nombre_grupal || "Nuevo Grupo"]
-    );
-    const id_chat = resultadoChat.insertId;
-
-    // 3. Asociar todos los usuarios al chat
-    for (const id_usuario of idsParticipantes) {
-      await realizarQuery(
-        "INSERT INTO UsuarioEnChat (id_chat, id_usuario) VALUES (?, ?)",
-        [id_chat, id_usuario]
-      );
-    }
-
-    res.json({ ok: true, msg: "Chat grupal creado con éxito", id_chat });
-  } catch (error) {
-    console.error("Error en /chatGrupal:", error);
-    res.status(500).json({ ok: false, msg: "Error al crear el chat grupal." });
-  }
-});
-
-// Historial de mensajes de un chat
-app.get("/mensajes/:id_chat", async (req, res) => {
-  const { id_chat } = req.params;
-
-  try {
-    const mensajes = await realizarQuery(
-      `SELECT m.id_mensaje, m.id_chat, m.id_emisor, m.contenido, m.fecha_hora, u.nombre, u.foto_perfil
-       FROM Mensajes m
-       JOIN Usuarios u ON m.id_emisor = u.id_usuario
-       WHERE m.id_chat = ?
-       ORDER BY m.fecha_hora ASC`,
-      [id_chat]
-    );
-
-    res.json({ ok: true, mensajes });
-  } catch (error) {
-    console.error("Error en /mensajes:", error);
-    res.status(500).json({ ok: false, msg: "Error al recuperar el historial." });
-  }
-});
-
-// =========================================================
-  // EVENTOS DE CHAT EN TIEMPO REAL (SOCKET.IO)
-  // =========================================================
-
   // Evento para que el usuario se una a la sala de un chat específico
   socket.on("join_chat", (id_chat) => {
     socket.join(`chat_${id_chat}`);
@@ -237,7 +88,6 @@ app.get("/mensajes/:id_chat", async (req, res) => {
 
   // Evento para enviar un mensaje en tiempo real y guardarlo en la DB
   socket.on("send_message", async (data, callback) => {
-    // data: { id_chat, id_emisor, contenido }
     const { id_chat, id_emisor, contenido } = data;
 
     try {
@@ -272,3 +122,144 @@ app.get("/mensajes/:id_chat", async (req, res) => {
       if (callback) callback({ ok: false, msg: "Error al procesar el mensaje." });
     }
   });
+
+  socket.on("disconnect", () => {
+    console.log("🔴 Cliente desconectado:", socket.id);
+  });
+});
+
+// =========================================================
+// RUTAS EXPRESS INTACTAS
+// =========================================================
+
+app.post('/login', async function (req, res) {
+    console.log(req.body);
+    try {
+      let respuesta = {
+            ok: false,
+            msg: "No se pudo loguear"
+        };
+        let existe = await realizarQuery(`
+            SELECT * FROM Usuarios WHERE mail = '${req.body.mail}' AND contra = '${req.body.contra}'
+        `);
+
+        if (existe.length > 0) {
+            respuesta.msg = "El usuario existe.";
+            respuesta.ok = true
+        }
+        return res.send({respuesta, existe});
+    } catch (error) {
+        console.log(error.message)
+        res.send({ message: "usuario no existe registrate", ok: false });
+    }
+});
+
+app.get('/chats', async function (req, res) {
+    try {
+        let chats = await realizarQuery(`SELECT * from Chats INNER JOIN
+        UsuarioEnChat ON Chats.id_chat = UsuarioEnChat.id_chat
+        INNER JOIN Usuarios ON Usuarios.id_usuario = UsuarioEnChat.id_usuario
+        WHERE id_usuario = ${req.query.id_usuario};`);
+        console.log("en el back", chats[0]);
+        res.send({ chats: chats, status: 1 })
+    } catch (error) {
+        res.send({ status: -1, error: error.message })
+    }
+});
+
+app.post('/chatIndividual', async function (req, res) {
+    console.log(req.body) 
+    let existe = []
+    let chat1 = await realizarQuery(`select id_usuario, nombre from Usuarios where mail = "${req.body.mail}"`)
+    if (chat1.length > 0) {
+        existe = await realizarQuery(`
+            SELECT * FROM UsuariosEnChat WHERE id_usuario = ${chat1[0].id_usuario};
+        `)
+    }
+    console.log(existe)
+    if (existe.length > 0) {
+        res.send({ message: "Ya existe" })
+    } else {
+      await realizarQuery(`
+        INSERT INTO Chats (nom_grupo) VALUES
+        ('${chat1[0].nombre}')`)
+
+        let chat = await realizarQuery(`select id_chat from Chats`)
+        await realizarQuery(`
+        INSERT INTO UsuariosEnChat (id_usuario, id_chat) VALUES
+        (${chat1[0].id_usuario}, ${chat[chat.length - 1].id_chat})
+    `)
+        res.send({ message: "Se ha agregado" });
+    }
+});
+
+app.post("/usuarios", (req, res) => {
+    console.log("Usuario recibido:", req.body);
+    res.json({
+        mensaje: "Usuario registrado correctamente",
+        usuario: req.body
+    });
+});
+
+// =========================================================
+// NUEVOS ENDPOINTS REST REQUERIDOS
+// =========================================================
+
+// Crear un chat grupal a partir de múltiples mails
+app.post("/chatGrupal", async (req, res) => {
+  const { id_creador, mails, nombre_grupal } = req.body;
+
+  if (!mails || !Array.isArray(mails) || mails.length === 0) {
+    return res.status(400).json({ ok: false, msg: "Se requiere un array de mails." });
+  }
+
+  try {
+    const placeholders = mails.map(() => "?").join(",");
+    const usuarios = await realizarQuery(
+      `SELECT id_usuario FROM Usuarios WHERE mail IN (${placeholders})`,
+      mails
+    );
+
+    const idsParticipantes = new Set(usuarios.map((u) => u.id_usuario));
+    idsParticipantes.add(Number(id_creador));
+
+    const resultadoChat = await realizarQuery(
+      "INSERT INTO Chats (es_grupal, nombre_chat) VALUES (1, ?)",
+      [nombre_grupal || "Nuevo Grupo"]
+    );
+    const id_chat = resultadoChat.insertId;
+
+    for (const id_usuario of idsParticipantes) {
+      await realizarQuery(
+        "INSERT INTO UsuarioEnChat (id_chat, id_usuario) VALUES (?, ?)",
+        [id_chat, id_usuario]
+      );
+    }
+
+    res.json({ ok: true, msg: "Chat grupal creado con éxito", id_chat });
+  } catch (error) {
+    console.error("Error en /chatGrupal:", error);
+    res.status(500).json({ ok: false, msg: "Error al crear el chat grupal." });
+  }
+});
+
+// Historial de mensajes de un chat
+app.get("/mensajes/:id_chat", async (req, res) => {
+  const { id_chat } = req.params;
+
+  try {
+    const mensajes = await realizarQuery(
+      `SELECT m.id_mensaje, m.id_chat, m.id_emisor, m.contenido, m.fecha_hora, u.nombre, u.foto_perfil
+       FROM Mensajes m
+       JOIN Usuarios u ON m.id_emisor = u.id_usuario
+       WHERE m.id_chat = ?
+       ORDER BY m.fecha_hora ASC`,
+      [id_chat]
+    );
+
+    res.json({ ok: true, mensajes });
+  } catch (error) {
+    console.error("Error en /mensajes:", error);
+    res.status(500).json({ ok: false, msg: "Error al recuperar el historial." });
+  }
+});
