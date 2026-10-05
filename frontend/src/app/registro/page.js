@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // 1. Importamos useRouter
+import { useRouter } from 'next/navigation';
 import { io } from 'socket.io-client';
 
 let socket;
@@ -15,7 +15,7 @@ const FOTOS_DISPONIBLES = [
 const FOTO_DEFAULT = { id: 0, url: "/default-profile.png", nombre: "Por defecto" };
 
 export default function RegistroPage() {
-  const router = useRouter(); // 2. Inicializamos router
+  const router = useRouter();
   const [username, setUsername] = useState('');
   const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +29,7 @@ export default function RegistroPage() {
     });
 
     return () => {
-      socket.disconnect();
+      if (socket) socket.disconnect();
     };
   }, []);
 
@@ -54,7 +54,7 @@ export default function RegistroPage() {
     }, (respuesta) => {
       if (respuesta && respuesta.ok) {
         alert("Registro exitoso");
-        router.push('/login'); // 3. Redirige a la pantalla de Login
+        router.push('/login');
       } else {
         alert("Error al registrar: " + (respuesta?.msg || "Sin respuesta del servidor"));
       }
@@ -62,69 +62,67 @@ export default function RegistroPage() {
   }
 
   return (
-    <div>
-      <h1>Registro</h1>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <div className="bg-white p-6 rounded shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-4">Registro</h1>
 
-      <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Username"
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-        />
-        <br /><br />
-        <input
-          type="text"
-          placeholder="Mail"
-          value={mail}
-          onChange={(event) => setMail(event.target.value)}
-        />
-        <br /><br />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            className="w-full p-2 border border-gray-300 rounded text-black outline-none focus:border-blue-500"
+          />
+          <input
+            type="email"
+            placeholder="Mail"
+            value={mail}
+            onChange={(event) => setMail(event.target.value)}
+            className="w-full p-2 border border-gray-300 rounded text-black outline-none focus:border-blue-500"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            className="w-full p-2 border border-gray-300 rounded text-black outline-none focus:border-blue-500"
+          />
 
-        <h3>Elige tu foto de perfil (Opcional):</h3>
+          <h3 className="font-semibold text-sm text-gray-700">Elige tu foto de perfil (Opcional):</h3>
 
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          <li
-            onClick={() => setFotoPerfil(FOTO_DEFAULT)}
-            style={{
-              border: fotoPerfil?.id === FOTO_DEFAULT.id ? '2px solid blue' : '1px solid #ccc',
-              cursor: 'pointer',
-              display: 'inline-block',
-              margin: '5px',
-              padding: '5px',
-              textAlign: 'center'
-            }}
-          >
-            <img src={FOTO_DEFAULT.url} alt="Foto por defecto" width="50" height="50" />
-            <br />
-            <small>Sin foto</small>
-          </li>
-
-          {FOTOS_DISPONIBLES.map(foto => (
+          <ul className="flex flex-wrap gap-2 justify-center list-none p-0">
             <li
-              key={foto.id}
-              onClick={() => setFotoPerfil(foto)}
-              style={{
-                border: fotoPerfil?.id === foto.id ? '2px solid blue' : '1px solid #ccc',
-                cursor: 'pointer',
-                display: 'inline-block',
-                margin: '5px',
-                padding: '5px'
-              }}
+              onClick={() => setFotoPerfil(FOTO_DEFAULT)}
+              className={`p-1 border rounded cursor-pointer text-center ${
+                fotoPerfil?.id === FOTO_DEFAULT.id ? 'border-blue-600 border-2' : 'border-gray-300'
+              }`}
             >
-              <img src={foto.url} alt={foto.nombre} width="50" height="50" />
+              <img src={FOTO_DEFAULT.url} alt="Foto por defecto" className="w-12 h-12 object-cover rounded-full" />
+              <small className="block text-[10px] mt-1">Sin foto</small>
             </li>
-          ))}
-        </ul>
 
-        <button type="submit">Registrarse</button>
-      </form>
+            {FOTOS_DISPONIBLES.map(foto => (
+              <li
+                key={foto.id}
+                onClick={() => setFotoPerfil(foto)}
+                className={`p-1 border rounded cursor-pointer text-center ${
+                  fotoPerfil?.id === foto.id ? 'border-blue-600 border-2' : 'border-gray-300'
+                }`}
+              >
+                <img src={foto.url} alt={foto.nombre} className="w-12 h-12 object-cover rounded-full" />
+              </li>
+            ))}
+          </ul>
+
+          <button 
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 transition"
+          >
+            Registrarse
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
