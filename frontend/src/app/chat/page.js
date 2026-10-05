@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,12 +10,38 @@ export default function ChatPage() {
     username: "",
     foto: ""
   });
+=======
+"use client";
 
+import { useState, useEffect } from "react";
+import { useSocket } from "@/hooks/useSocket";
+import Input from "@/components/Input";
+import Button from "@/components/Button";
+import ChatList from "@/components/ChatList";
+import Message from "@/components/Message";
+import NewChatPopup from "@/components/NewChatPopup";
+
+export default function Home() {
+  // Estado de sesión y navegación entre Auth / App
+  const [user, setUser] = useState(null);
+  const [isRegister, setIsRegister] = useState(false);
+>>>>>>> Stashed changes
+
+  // Formulario Auth
+  const [nombre, setNombre] = useState("");
+  const [username, setUsername] = useState("");
+  const [mail, setMail] = useState("");
+  const [contra, setContra] = useState("");
+  const [foto, setFoto] = useState("");
+  const [authError, setAuthError] = useState("");
+
+  // Estado del Chat
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [mensajes, setMensajes] = useState([]);
   const [nuevoMensaje, setNuevoMensaje] = useState("");
 
+<<<<<<< Updated upstream
   const [modalAbierto, setModalAbierto] = useState(false);
   const [tipoModal, setTipoModal] = useState('individual');
   const [mailIndividual, setMailIndividual] = useState("");
@@ -28,8 +55,13 @@ export default function ChatPage() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+=======
+  const socket = useSocket("http://localhost:4000");
+>>>>>>> Stashed changes
 
+  // Cargar lista de chats cuando hay un usuario logueado
   useEffect(() => {
+<<<<<<< Updated upstream
     scrollToBottom();
   }, [mensajes]);
 
@@ -49,8 +81,92 @@ export default function ChatPage() {
         cargarChats(u.id_usuario);
       } catch (e) {
         console.error("Error al parsear usuario desde localStorage:", e);
-      }
+=======
+    if (user) {
+      cargarChats();
     }
+  }, [user]);
+
+  // Manejo de eventos en tiempo real con Socket.IO
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleReceiveMessage = (msg) => {
+      if (activeChat && msg.id_chat === activeChat.id_chat) {
+        setMensajes((prev) => [...prev, msg]);
+>>>>>>> Stashed changes
+      }
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
+
+    return () => {
+      socket.off("receive_message", handleReceiveMessage);
+    };
+  }, [socket, activeChat]);
+
+  // Cargar chats del usuario desde el Backend
+  const cargarChats = async () => {
+    if (!user) return;
+    try {
+      const res = await fetch(`http://localhost:4000/chats?id_usuario=${user.id_usuario}`);
+      const data = await res.json();
+      if (data.status === 1) {
+        setChats(data.chats);
+      }
+    } catch (err) {
+      console.error("Error al cargar los chats:", err);
+    }
+  };
+
+  // Manejar Login / Registro vı́a HTTP REST
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setAuthError("");
+
+    const endpoint = isRegister ? "/register" : "/login";
+    const body = isRegister
+      ? { nombre, username: username || nombre, mail, contra, fotoPerfil: foto }
+      : { mail, contra };
+
+    try {
+      if (isRegister && socket) {
+        // Opción vía Socket para Registro según tu backend
+        socket.emit("register", { nombre, username: username || nombre, mail, contra, fotoPerfil: foto }, (res) => {
+          if (res.ok) {
+            alert("Registro exitoso. Ahora podés iniciar sesión.");
+            setIsRegister(false);
+          } else {
+            setAuthError(res.msg);
+          }
+        });
+      } else {
+        // Login vía HTTP REST
+        const res = await fetch(`http://localhost:4000${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          setUser(data.usuario);
+        } else {
+          setAuthError(data.msg || "Error en la autenticación.");
+        }
+      }
+    } catch (err) {
+      setAuthError("Error de conexión con el servidor.");
+    }
+  };
+
+  // Seleccionar un chat e ingresar a su sala en Socket.IO
+  const seleccionarChat = async (chat) => {
+    setActiveChat(chat);
+    if (socket) {
+      socket.emit("join_chat", chat.id_chat);
+    }
+<<<<<<< Updated upstream
   }, []);
 
   // 2. Polling para refrescar mensajes en tiempo real
@@ -249,8 +365,107 @@ export default function ChatPage() {
       </div>
     );
   };
+=======
 
+    try {
+      const res = await fetch(`http://localhost:4000/mensajes/${chat.id_chat}`);
+      const data = await res.json();
+      if (data.ok) {
+        setMensajes(data.mensajes);
+      }
+    } catch (err) {
+      console.error("Error al cargar el historial:", err);
+    }
+  };
+
+  // Enviar mensaje mediante Socket.IO
+  const enviarMensaje = (e) => {
+    e.preventDefault();
+    if (!nuevoMensaje.trim() || !activeChat || !socket) return;
+
+    socket.emit("send_message", {
+      id_chat: activeChat.id_chat,
+      id_usuario: user.id_usuario,
+      contenido: nuevoMensaje,
+    });
+
+    setNuevoMensaje("");
+  };
+
+  // -------------------------------------------------------------
+  // VISTA 1: FORMULARIO DE LOGIN / REGISTRO
+  // -------------------------------------------------------------
+  if (!user) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-100 p-4">
+        <form onSubmit={handleAuth} className="p-6 bg-white rounded-lg shadow-lg w-full max-w-sm space-y-4">
+          <h2 className="text-2xl font-bold text-center text-gray-800">
+            {isRegister ? "Crear Cuenta" : "Pio Chat"}
+          </h2>
+
+          {authError && <p className="text-red-500 text-xs text-center font-medium">{authError}</p>}
+
+          {isRegister && (
+            <>
+              <Input
+                placeholder="Nombre completo"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                required
+              />
+              <Input
+                placeholder="Nombre de usuario (Username)"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+              <Input
+                placeholder="URL Foto de perfil (Opcional)"
+                value={foto}
+                onChange={(e) => setFoto(e.target.value)}
+              />
+            </>
+          )}
+
+          <Input
+            type="email"
+            placeholder="Correo electrónico"
+            value={mail}
+            onChange={(e) => setMail(e.target.value)}
+            required
+          />
+          <Input
+            type="password"
+            placeholder="Contraseña"
+            value={contra}
+            onChange={(e) => setContra(e.target.value)}
+            required
+          />
+
+          <Button type="submit" className="w-full font-semibold">
+            {isRegister ? "Registrarse" : "Iniciar Sesión"}
+          </Button>
+
+          <p
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setAuthError("");
+            }}
+            className="text-xs text-blue-600 hover:underline cursor-pointer text-center"
+          >
+            {isRegister ? "¿Ya tenés cuenta? Iniciá sesión" : "¿No tenés cuenta? Registrate acá"}
+          </p>
+        </form>
+      </div>
+    );
+  }
+>>>>>>> Stashed changes
+
+  // -------------------------------------------------------------
+  // VISTA 2: APLICACIÓN PRINCIPAL DE CHAT
+  // -------------------------------------------------------------
   return (
+<<<<<<< Updated upstream
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'sans-serif', backgroundColor: '#f3f4f6', color: '#000' }}>
       
       {/* Panel Izquierdo: Lista de Chats */}
@@ -426,6 +641,78 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+=======
+    <div className="flex h-screen bg-gray-200">
+      {/* Sidebar Izquierda: Perfil y Lista de Chats */}
+      <div className="w-1/3 bg-white border-r border-gray-300 flex flex-col">
+        {/* Cabecera del usuario */}
+        <div className="p-3 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+          <div className="flex items-center gap-3">
+            <img
+              src={user.foto || user.foto_perfil || "/default-profile.png"}
+              alt={user.nombre}
+              className="w-10 h-10 rounded-full object-cover border"
+            />
+            <span className="font-bold text-gray-800 text-sm">{user.username || user.nombre}</span>
+          </div>
+
+          {/* Modal para crear chat individual o grupal */}
+          <NewChatPopup idUsuario={user.id_usuario} onChatCreated={cargarChats} />
+        </div>
+
+        {/* Lista de Chats */}
+        <div className="flex-1 overflow-y-auto">
+          <ChatList chats={chats} onSelectChat={seleccionarChat} />
+        </div>
+      </div>
+
+      {/* Panel Derecho: Área de conversación */}
+      <div className="w-2/3 flex flex-col justify-between bg-gray-50">
+        {activeChat ? (
+          <>
+            {/* Header del Chat activo */}
+            <div className="p-3 bg-white border-b border-gray-300 flex items-center gap-3 shadow-sm">
+              <img
+                src={activeChat.foto || "/default-profile.png"}
+                alt={activeChat.nombre}
+                className="w-10 h-10 rounded-full object-cover border"
+              />
+              <div>
+                <h3 className="font-bold text-gray-800">{activeChat.nombre}</h3>
+                <p className="text-xs text-gray-500">
+                  {activeChat.es_grupo ? "Grupo" : "Chat individual"}
+                </p>
+              </div>
+            </div>
+
+            {/* Mensajes del Chat */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-2">
+              {mensajes.map((m) => (
+                <Message
+                  key={m.id_msj || m.id_mensaje}
+                  mensaje={m}
+                  esPropio={m.id_usuario === user.id_usuario || m.id_emisor === user.id_usuario}
+                />
+              ))}
+            </div>
+
+            {/* Input para enviar un nuevo mensaje */}
+            <form onSubmit={enviarMensaje} className="p-3 bg-white flex gap-2 border-t border-gray-300">
+              <Input
+                placeholder="Escribí un mensaje..."
+                value={nuevoMensaje}
+                onChange={(e) => setNuevoMensaje(e.target.value)}
+              />
+              <Button type="submit">Enviar</Button>
+            </form>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full text-gray-400 font-medium">
+            Seleccioná un chat de la lista para empezar a escribir
+          </div>
+        )}
+      </div>
+>>>>>>> Stashed changes
     </div>
   );
 }

@@ -24,3 +24,11 @@ FOREIGN KEY (id_chat) REFERENCES Chats(id_chat)
 
 select * from Usuarios where id_usuario = 1;
 
+CREATE TABLE Usuarios(
+    id_usuario AUTO_INCREMENT
+    nombre
+    mail
+    username
+    contra
+)
+

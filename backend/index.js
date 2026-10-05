@@ -1,4 +1,4 @@
-const express = require("express");
+/*const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const { Server } = require("socket.io");
@@ -256,12 +256,116 @@ app.post('/chatIndividual', async function (req, res) {
     }
 });
 
+<<<<<<< Updated upstream
 // POST /chatGrupal - Crear un chat grupal
 app.post("/chatGrupal", async (req, res) => {
     const { id_creador, mails, nombre_grupal } = req.body;
 
     if (!mails || !Array.isArray(mails) || mails.length === 0) {
         return res.status(400).json({ ok: false, msg: "Se requiere un array de mails." });
+=======
+app.post("/usuarios", (req, res) => {
+    console.log("Usuario recibido:", req.body);
+    res.json({
+        mensaje: "Usuario registrado correctamente",
+        usuario: req.body
+    });
+});
+
+// =========================================================
+// NUEVOS ENDPOINTS REST REQUERIDOS
+// =========================================================
+
+// Obtener chats de un usuario (Individuales y Grupales)
+app.get('/chats', async function (req, res) {
+  const { id_usuario } = req.query;
+  try {
+    let chats = await realizarQuery(`
+      SELECT c.id_chat, c.es_grupo, c.nom_grupo, c.foto_grupo,
+             u.nombre AS contacto_nombre, u.foto AS contacto_foto
+      FROM Chats c
+      JOIN UsuariosEnChat uec ON c.id_chat = uec.id_chat
+      LEFT JOIN UsuariosEnChat uec2 ON c.id_chat = uec2.id_chat AND uec2.id_usuario != ? AND c.es_grupo = FALSE
+      LEFT JOIN Usuarios u ON uec2.id_usuario = u.id_usuario
+      WHERE uec.id_usuario = ?
+    `, [id_usuario, id_usuario]);
+
+    const chatsFormateados = chats.map(c => ({
+      id_chat: c.id_chat,
+      es_grupo: Boolean(c.es_grupo),
+      nombre: c.es_grupo ? c.nom_grupo : c.contacto_nombre,
+      foto: c.es_grupo ? (c.foto_grupo || '/default-group.png') : (c.contacto_foto || '/default-avatar.png')
+    }));
+
+    res.send({ chats: chatsFormateados, status: 1 });
+  } catch (error) {
+    res.status(500).send({ status: -1, error: error.message });
+  }
+});
+
+// Crear Chat Individual
+app.post('/chatIndividual', async function (req, res) {
+  const { id_usuario, mail } = req.body;
+  try {
+    // 1. Buscar al otro usuario
+    let contacto = await realizarQuery(`SELECT id_usuario, nombre FROM Usuarios WHERE mail = ?`, [mail]);
+    
+    if (contacto.length === 0) {
+      return res.status(404).send({ ok: false, message: "El usuario con ese mail no existe" });
+    }
+
+    const id_contacto = contacto[0].id_usuario;
+
+    // 2. Crear nuevo Chat
+    let nuevoChat = await realizarQuery(`INSERT INTO Chats (es_grupo) VALUES (FALSE)`);
+    let id_chat = nuevoChat.insertId;
+
+    // 3. Vincular a AMBOS usuarios en UsuariosEnChat
+    await realizarQuery(
+      `INSERT INTO UsuariosEnChat (id_usuario, id_chat) VALUES (?, ?), (?, ?)`,
+      [id_usuario, id_chat, id_contacto, id_chat]
+    );
+
+    res.send({ ok: true, message: "Chat creado con éxito", id_chat });
+  } catch (error) {
+    res.status(500).send({ ok: false, error: error.message });
+  }
+});
+
+// Crear Chat Grupal
+app.post("/chatGrupal", async (req, res) => {
+  const { id_creador, mails, nombre_grupal, foto_grupo } = req.body;
+
+  if (!mails || !Array.isArray(mails) || mails.length === 0) {
+    return res.status(400).json({ ok: false, msg: "Se requiere un array de mails válidos." });
+  }
+
+  try {
+    const placeholders = mails.map(() => "?").join(",");
+    const usuarios = await realizarQuery(
+      `SELECT id_usuario FROM Usuarios WHERE mail IN (${placeholders})`,
+      mails
+    );
+
+    if (usuarios.length !== mails.length) {
+      return res.status(400).json({ ok: false, msg: "Uno o varios mails no están registrados." });
+    }
+
+    const idsParticipantes = new Set(usuarios.map((u) => u.id_usuario));
+    idsParticipantes.add(Number(id_creador));
+
+    const resultadoChat = await realizarQuery(
+      "INSERT INTO Chats (es_grupo, nom_grupo, foto_grupo) VALUES (TRUE, ?, ?)",
+      [nombre_grupal || "Nuevo Grupo", foto_grupo || "/default-group.png"]
+    );
+    const id_chat = resultadoChat.insertId;
+
+    for (const id_u of idsParticipantes) {
+      await realizarQuery(
+        "INSERT INTO UsuariosEnChat (id_chat, id_usuario) VALUES (?, ?)",
+        [id_chat, id_u]
+      );
+>>>>>>> Stashed changes
     }
 
     try {
@@ -293,6 +397,7 @@ app.post("/chatGrupal", async (req, res) => {
     }
 });
 
+<<<<<<< Updated upstream
 // POST /mensajes - Guardar un nuevo mensaje en la BD
 app.post("/mensajes", async (req, res) => {
     try {
@@ -321,9 +426,13 @@ app.post("/mensajes", async (req, res) => {
 });
 
 // GET /mensajes/:id_chat - Historial de mensajes
+=======
+// Historial de Mensajes de un Chat
+>>>>>>> Stashed changes
 app.get("/mensajes/:id_chat", async (req, res) => {
     const { id_chat } = req.params;
 
+<<<<<<< Updated upstream
     try {
         const mensajes = await realizarQuery(`
             SELECT m.id_mensaje AS id_msj, m.id_chat, m.id_emisor AS id_usuario, m.contenido, m.fecha_hora, u.nombre, u.foto_perfil
@@ -332,6 +441,17 @@ app.get("/mensajes/:id_chat", async (req, res) => {
             WHERE m.id_chat = ${id_chat}
             ORDER BY m.fecha_hora ASC
         `);
+=======
+  try {
+    const mensajes = await realizarQuery(
+      `SELECT m.id_msj, m.id_chat, m.id_usuario, m.texto, m.fecha_hora, u.username, u.nombre, u.foto
+       FROM Mensajes m
+       JOIN Usuarios u ON m.id_usuario = u.id_usuario
+       WHERE m.id_chat = ?
+       ORDER BY m.fecha_hora ASC`,
+      [id_chat]
+    );
+>>>>>>> Stashed changes
 
         res.json({ ok: true, mensajes: Array.isArray(mensajes) ? mensajes : [] });
     } catch (error) {

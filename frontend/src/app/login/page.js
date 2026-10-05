@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from "@/components/Button";
@@ -23,14 +24,14 @@ export default function LoginPage() {
       });
 
       const data = await res.json();
-      console.log(data)
-      if (data.respuesta && data.respuesta.ok) {
-        // Guardamos los datos del usuario en el navegador para usarlos después
-        localStorage.setItem('mail', JSON.stringify(mail));
-        if (data.existe && data.existe.length > 0) {
-          localStorage.setItem('usuario', JSON.stringify(data.existe[0]));
-        }
-        // Redirigimos a la pantalla principal de chats
+      console.log("Respuesta de Login:", data);
+
+      // Corregido: la API devuelve { ok: true, usuario: {...} }
+      if (res.ok && data.ok) {
+        // Guardamos la información del usuario logueado en localStorage
+        localStorage.setItem('usuario', JSON.stringify(data.usuario));
+
+        // Redirigimos a la pantalla principal del chat
         router.push('/chat');
       } else {
         setError(data.msg || 'Credenciales incorrectas');
@@ -42,28 +43,33 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      <h1>Login</h1>
-      <form onSubmit={handleSubmit}>
-        <input 
-          type="email" 
-          placeholder="Mail" 
-          value={mail}
-          onChange={(e) => setMail(e.target.value)}
-          required
-        />
-        <input 
-          type="password" 
-          placeholder="Password" 
-          value={contra}
-          onChange={(e) => setContra(e.target.value)}
-          required
-        />
-        
-        {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <div className="bg-white p-6 rounded shadow-md w-full max-w-sm">
+        <h1 className="text-2xl font-bold text-center mb-4">Iniciar Sesión</h1>
 
-        <Button type="submit">Iniciar sesión</Button>
-      </form>
-    </>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input 
+            type="email" 
+            placeholder="Mail" 
+            value={mail}
+            onChange={(e) => setMail(e.target.value)}
+            required
+            className="w-full p-2 border border-gray-300 rounded text-black outline-none focus:border-blue-500"
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            value={contra}
+            onChange={(e) => setContra(e.target.value)}
+            required
+            className="w-full p-2 border border-gray-300 rounded text-black outline-none focus:border-blue-500"
+          />
+          
+          {error && <p className="text-red-500 text-xs text-center">{error}</p>}
+
+          <Button type="submit" className="w-full">Iniciar sesión</Button>
+        </form>
+      </div>
+    </div>
   );
 }
